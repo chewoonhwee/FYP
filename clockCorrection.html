@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            padding-top: 60px;
+        }
+
+        #topbar {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 10px;
+            text-align: right;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        #sidebar {
+            background-color: #2c3e50;
+            color: #fff;
+            height: 100vh;
+            position: fixed;
+            top: 50px;
+            left: 0;
+            width: 240px;
+        }
+
+        #sidebar ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #sidebar ul li {
+            padding: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #sidebar ul li:hover {
+            background-color: #34495e;
+        }
+
+        #sidebar ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        #content {
+            margin-left: 240px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        #dataTable {
+            margin-top: 20px;
+        }
+
+        #submitButton,
+        #approvalButton,
+        #searchButton {
+            margin-top: 32px;
+        }
+
+        .button-container {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .button-container button {
+            margin-right: 10px;
+        }
+        .hidden{
+    	display: none;
+    }
+    </style>
+</head>
+<body>
+<div id="topbar">
+    <span id="username">Hi, </span>
+    <button id="logoutBtn" class="btn btn-danger">Logout</button>
+</div>
+<div id="sidebar">
+    <ul>
+        <li><a href="leave.html">Leave Application</a></li>
+        <li><a href="clockCorrection.html">Clock Correction</a></li>
+        <li><a href="rawCardScanning.html">Raw Card Scanning</a></li>
+        <li><a href="attendance.html"></a></li>
+        <li><a href="reports.html"></a></li>
+    </ul>
+</div>
+<div id="content">
+    <h1>Clock Correction</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="startDatePicker">Start Date:</label>
+                <input type="date" class="form-control" id="startDatePicker">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="endDatePicker">End Date:</label>
+                <input type="date" class="form-control" id="endDatePicker">
+            </div>
+        </div>
+        <div class="col-md-4 button-container">
+            <div class="form-group">
+                <button class="btn btn-primary" id="searchButton">Search</button>
+                <button class="hidden" id="submitButton">Submit</button>
+                <button id="approvalButton" class="btn btn-primary">Approval</button>
+            </div>
+        </div>
+    </div>
+    <table id="dataTable" class="table">
+        <thead>
+        <tr>
+            <th>Email</th>
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+        </tr>
+        </thead>
+        <tbody id="dataTableBody"></tbody>
+    </table>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth.js";
+    import { getDatabase, ref, orderByChild, onValue, update, push, set, runTransaction, equalTo, child, get } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+		apiKey: "AIzaSyB8YctrbNi5lFn0Mvv8VDYp8rEPabEs1Vw",
+        authDomain: "cloud-based-hrms-system.firebaseapp.com",
+        databaseURL: "https://cloud-based-hrms-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "cloud-based-hrms-system",
+        storageBucket: "cloud-based-hrms-system.appspot.com",
+        messagingSenderId: "596260893240",
+        appId: "1:596260893240:web:01be54c76eac3613d42ccd",
+        measurementId: "G-8R50BJCTE0"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const database = getDatabase();
+
+    // Handle authentication state changes
+    auth.onAuthStateChanged(function (user) {
+        if (user) {
+            // User is signed in
+            document.getElementById("username").textContent = "Hi, " + user.email;
+            // Check if the logged-in email is admin account or not
+            if (user.email !== "oonhwee217@gmail.com" && user.email !== "boss@gmail.com") {
+                // Hide the "Approval" button
+                document.getElementById("approvalButton").style.display = "none";
+            }
+
+            // Logout button click event
+            document.getElementById("logoutBtn").addEventListener("click", function () {
+                signOut(auth).then(function () {
+                    // Redirect to login page
+                    window.location.href = "login.html";
+                }).catch(function (error) {
+                    console.log("Error signing out:", error);
+                });
+            });
+        } else {
+            // User is signed out
+            document.getElementById("username").textContent = "Hi, Guest";
+        }
+    });
+
+    // Search button click event
+    document.getElementById("searchButton").addEventListener("click", function () {
+        const startDate = document.getElementById("startDatePicker").value;
+        const endDate = document.getElementById("endDatePicker").value;
+
+        displayClockCorrection(startDate, endDate);
+    });
+
+    // Global variable to store the edited scan keys
+    let editedScanKeys = [];
+
+    // Function to create the submit button for each row
+    function createSubmitButton(row, clockCorrectionFormID) {
+        const submitButton = document.createElement("button");
+        submitButton.classList.add("btn", "btn-primary");
+        submitButton.textContent = "Submit";
+
+        submitButton.addEventListener("click", function () {
+            submitEdit(row, clockCorrectionFormID);
+        });
+
+        return submitButton;
+    }
+
+// Function to submit the edited input for a specific row
+function submitEdit(row) {
+    const email = document.getElementById("username").textContent.replace("Hi, ", "");
+    const emailCell = row.cells[0];
+    const dateCell = row.cells[1];
+    const timeInInput = row.querySelector(".timeInInput");
+    const timeOutInput = row.querySelector(".timeOutInput");
+
+    const scanKey = timeInInput ? timeInInput.dataset.scanKey : timeOutInput.dataset.scanKey;
+    const timeIn = timeInInput ? timeInInput.value : null;
+    const timeOut = timeOutInput ? timeOutInput.value : null;
+
+    // Get the current clockCorrectionFormID
+    const clockCorrectionFormIDRef = ref(database, "clockCorrectionFormID");
+    get(clockCorrectionFormIDRef).then((snapshot) => {
+        let clockCorrectionFormID = snapshot.val() || "C0000"; // Retrieve the current form ID or default to C0000
+
+            // Extract the number part from the clockCorrectionFormID and increment it
+            const currentNumber = parseInt(clockCorrectionFormID.substring(1));
+            const incrementedNumber = currentNumber + 1;
+
+            // Create the new form ID with the incremented number
+            clockCorrectionFormID = "C" + padDigits(incrementedNumber, 4);
+
+        const clockCorrectionForm = {
+            clockCorrectionFormID:  clockCorrectionFormID, // Assign the incremented form ID
+            email: email,
+            date: dateCell.textContent,
+            timeIn: timeIn,
+            timeOut: timeOut,
+            approvalStatus: "unapproved"
+        };
+
+        const clockCorrectionFormsRef = ref(database, "clockCorrectionForms");
+
+        push(clockCorrectionFormsRef, clockCorrectionForm)
+            .then(function () {
+                // Update the clockCorrectionFormID in the database
+                set(clockCorrectionFormIDRef, clockCorrectionFormID)
+                    .then(function () {
+                        // Display a success message or perform any other necessary actions
+                        alert("Form submitted successfully!");
+                    })
+                    .catch(function (error) {
+                        console.error("Error updating form ID:", error);
+                    });
+            })
+            .catch(function (error) {
+                console.error("Error submitting form:", error);
+            });
+    }).catch(function (error) {
+        console.error("Error retrieving form ID:", error);
+    });
+}
+
+// Helper function to pad the form ID with leading zeros
+function padDigits(number, digits) {
+    return String(number).padStart(digits, '0');
+}
+
+
+
+    // Function to display data within the specified start and end dates
+function displayClockCorrection(startDate, endDate) {
+    const tableBody = document.getElementById("dataTableBody");
+    tableBody.innerHTML = ""; // Clear previous data
+    editedScanKeys = []; // Reset edited scan keys
+
+    const userEmail = document.getElementById("username").textContent.replace("Hi, ", "");
+    const rawCardScanningRef = ref(database, "rawCardScanning");
+
+    onValue(rawCardScanningRef, function (snapshot) {
+        snapshot.forEach(function (childSnapshot) {
+            const scan = childSnapshot.val();
+
+            const scanDate = new Date(scan.scanDate);
+            const formattedStartDate = new Date(startDate);
+            const formattedEndDate = new Date(endDate);
+
+            if (scanDate >= formattedStartDate && scanDate <= formattedEndDate && scan.email === userEmail) {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${scan.email}</td>
+                    <td>${scan.scanDate}</td>
+                    <td>
+                        ${scan.timeIn ? `<input type="text" class="timeInInput" data-scan-key="${childSnapshot.key}" value="${scan.timeIn}">` : ''}
+                    </td>
+                    <td>
+                        ${scan.timeOut ? `<input type="text" class="timeOutInput" data-scan-key="${childSnapshot.key}" value="${scan.timeOut}">` : ''}
+                    </td>
+                    <td></td>
+                `;
+
+                const submitButtonCell = row.cells[4];
+                submitButtonCell.appendChild(createSubmitButton(row));
+                tableBody.appendChild(row);
+            }
+        });
+    });
+}
+
+    // Event listener for the approval button
+    document.getElementById("approvalButton").addEventListener("click", function () {
+        window.location.href = "clockCorrectionApproval.html";
+    });
+
+    // Event listener for the approval button
+    document.getElementById("approvalButton").addEventListener("click", function () {
+        window.location.href = "clockCorrectionApproval.html";
+    });
+
+    // Add event listener to submit button
+    document.getElementById("submitButton").addEventListener("click", submitEdit);
+
+</script>
+<script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+<df-messenger
+    intent="WELCOME"
+    chat-title="HRMS"
+    agent-id="9dc53705-e764-4510-9431-e929732fdae0"
+    language-code="en"
+></df-messenger>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: Arial, sans-serif;
+			background-color: #f7f7f7;
+		}
+
+		#topbar {
+			background-color: #2c3e50;
+			color: #fff;
+			padding: 10px;
+			text-align: right;
+		}
+
+		#sidebar {
+			width: 240px;
+			background-color: #2c3e50;
+			color: #fff;
+			height: 100vh;
+			position: fixed;
+			top: 40px;
+		}
+
+		#sidebar ul {
+			list-style-type: none;
+			padding: 0;
+			margin: 0;
+		}
+
+		#sidebar ul li {
+			padding: 20px;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+		}
+
+		#sidebar ul li:hover {
+			background-color: #34495e;
+		}
+
+		#sidebar ul li a {
+			color: #fff;
+			text-decoration: none;
+		}
+
+		#content {
+			margin-left: 240px;
+			padding: 20px;
+		}
+
+		h1 {
+			color: #333;
+		}
+        #leaveFormTable {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		#leaveFormTable th,
+		#leaveFormTable td {
+			padding: 10px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+		}
+
+		#leaveFormTable th {
+			background-color: #f2f2f2;
+		}
+
+		#leaveFormTable tbody tr:nth-child(even) {
+			background-color: #f9f9f9;
+		}
+
+		#leaveFormTable tbody tr:hover {
+			background-color: #f5f5f5;
+		}
+
+		.approveBtn,
+		.declineBtn {
+			padding: 5px 10px;
+			margin-right: 5px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		.approveBtn {
+			background-color: green;
+			color: #fff;
+		}
+
+		.declineBtn {
+			background-color: red;
+			color: #fff;
+		}
+	</style>
+  
+</head>
+<body>
+    
+    <div id="topbar">
+      <span id="username">Hi, </span>
+      <button id="logoutBtn">Logout</button> 
+    </div>
+    
+    <div id="sidebar">
+      <ul>
+        <li><a href="leave.html">Leave Application</a></li>
+        <li><a href="clockCorrection.html">Clock Correction</a></li>
+        <li><a href="rawCardScanning.html">Raw Card Scanning</a></li>
+        <li><a href="attendance.html"></a></li>
+        <li><a href="reports.html"></a></li>
+      </ul>
+    </div>
+    <div id="content">
+		<h1>Leave Application Approval</h1>
+		<div id="leaveFormApproval">
+			<table id="leaveFormTable">
+				<thead>
+					<tr>
+						<th>Leave Form ID</th>
+						<th>Email</th>
+						<th>Start Date</th>
+						<th>End Date</th>
+						<th>Reason</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody id="unapprovedLeaveFormsTableBody"></tbody>
+			</table>
+		</div>
+	</div>
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-analytics.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth.js";
+    import { getDatabase, ref, push, set, onValue, runTransaction, orderByChild, equalTo, child, get, query, update, remove } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js";
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8YctrbNi5lFn0Mvv8VDYp8rEPabEs1Vw",
+      authDomain: "cloud-based-hrms-system.firebaseapp.com",
+      databaseURL: "https://cloud-based-hrms-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cloud-based-hrms-system",
+      storageBucket: "cloud-based-hrms-system.appspot.com",
+      messagingSenderId: "596260893240",
+      appId: "1:596260893240:web:01be54c76eac3613d42ccd",
+      measurementId: "G-8R50BJCTE0"
+};
+
+
+	// Initialize Firebase
+	const app = initializeApp(firebaseConfig);
+	const auth = getAuth();
+  const database = getDatabase();
+  const leaveFormDB = ref(database, "leaveForm");
+  const defaultApprovalStatus = "unapproved";
+
+ // Retrieve unapproved leave forms from the database
+ function getUnapprovedLeaveForms() {
+			const unapprovedQuery = query(
+				leaveFormDB,
+				orderByChild("approvalStatus"),
+				equalTo("unapproved")
+			);
+
+			onValue(unapprovedQuery, (snapshot) => {
+				// Clear the existing table rows
+				unapprovedLeaveFormsTableBody.innerHTML = "";
+
+				// Loop through each child snapshot
+				snapshot.forEach((childSnapshot) => {
+					const childData = childSnapshot.val();
+
+					// Create a new table row
+					const row = document.createElement("tr");
+
+					// Create table cells and populate them with data
+					const leaveFormIDCell = document.createElement("td");
+					leaveFormIDCell.textContent = childData.leaveFormID;
+					row.appendChild(leaveFormIDCell);
+
+					const emailCell = document.createElement("td");
+					emailCell.textContent = childData.email;
+					row.appendChild(emailCell);
+
+					const startDateCell = document.createElement("td");
+					startDateCell.textContent = childData.startDate;
+					row.appendChild(startDateCell);
+
+					const endDateCell = document.createElement("td");
+					endDateCell.textContent = childData.endDate;
+					row.appendChild(endDateCell);
+
+					const reasonCell = document.createElement("td");
+					reasonCell.textContent = childData.reason;
+					row.appendChild(reasonCell);
+
+					const actionCell = document.createElement("td");
+					const approveBtn = document.createElement("button");
+					approveBtn.classList.add("approveBtn");
+					approveBtn.textContent = "Approve";
+					approveBtn.addEventListener("click", function () {
+						console.log("leave form id:", childData.leaveFormID);
+					// Handle approve button click event
+					updateApprovalStatus(childData.leaveFormID);
+					});
+					actionCell.appendChild(approveBtn);
+
+
+					const declineBtn = document.createElement("button");
+					declineBtn.classList.add("declineBtn");
+					declineBtn.textContent = "Decline";
+					declineBtn.addEventListener("click", function () {
+					// Handle decline button click event
+					declineLeaveForm(childData.leaveFormID);
+					});
+					actionCell.appendChild(declineBtn);
+
+
+					row.appendChild(actionCell);
+
+					// Append the row to the table body
+					unapprovedLeaveFormsTableBody.appendChild(row);
+				});
+			});
+		}
+
+		
+// Update the approval status of the leave form to "approved"
+function updateApprovalStatus(leaveFormID) {
+  const unapprovedQuery = query(
+    leaveFormDB,
+    orderByChild("approvalStatus"),
+    equalTo("unapproved")
+  );
+
+  onValue(unapprovedQuery, (snapshot) => {
+    snapshot.forEach((childSnapshot) => {
+      const childData = childSnapshot.val();
+      if (childData.leaveFormID === leaveFormID) {
+        const leaveFormKey = childSnapshot.key;
+        const leaveFormRef = ref(database, `leaveForm/${leaveFormKey}`);
+        update(leaveFormRef, { approvalStatus: "approved" })
+          .then(() => {
+            console.log("Leave form approval status updated successfully.");
+          })
+          .catch((error) => {
+            console.log("Error updating leave form approval status:", error);
+          });
+      }
+    });
+  });
+}
+
+// Handle approve button click event
+function handleApproveButtonClick(leaveFormID) {
+  updateApprovalStatus(leaveFormID);
+}
+
+// Delete the leave form from the database
+function declineLeaveForm(leaveFormID) {
+  const unapprovedQuery = query(
+    leaveFormDB,
+    orderByChild("approvalStatus"),
+    equalTo("unapproved")
+  );
+
+  onValue(unapprovedQuery, (snapshot) => {
+    snapshot.forEach((childSnapshot) => {
+      const childData = childSnapshot.val();
+      if (childData.leaveFormID === leaveFormID) {
+        const leaveFormKey = childSnapshot.key;
+        const leaveFormRef = ref(database, `leaveForm/${leaveFormKey}`);
+        remove(leaveFormRef)
+          .then(() => {
+            console.log("Leave form deleted successfully.");
+          })
+          .catch((error) => {
+            console.log("Error deleting leave form:", error);
+          });
+      }
+    });
+  });
+}
+
+
+// Handle authentication state changes
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    // User is signed in
+    document.getElementById("username").textContent = "Hi, " + user.email;
+
+    // Logout button click event
+    document.getElementById("logoutBtn").addEventListener("click", function() {
+      signOut(auth).then(function() {
+        // Redirect to login page
+        window.location.href = "login.html";
+      }).catch(function(error) {
+        console.log("Error signing out:", error);
+      });
+    });
+  } else {
+    // User is signed out
+    document.getElementById("username").textContent = "Hi, Guest";
+  }
+});
+// Update the leave form approval table
+function updateLeaveFormApprovalTable() {
+			// Get the unapproved leave forms from the database
+			getUnapprovedLeaveForms();
+		}
+
+		// Update the leave form approval table on page load
+		updateLeaveFormApprovalTable();
+</script>
+<script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+<df-messenger
+  intent="WELCOME"
+  chat-title="HRMS"
+  agent-id="9dc53705-e764-4510-9431-e929732fdae0"
+  language-code="en"
+></df-messenger>
+</body>
+</html>

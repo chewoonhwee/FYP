@@ -1,0 +1,55 @@
+// Function to handle the submission of edited time in and time out values
+function submitEdits() {
+    const timeInInputs = document.getElementsByClassName("timeInInput");
+    const timeOutInputs = document.getElementsByClassName("timeOutInput");
+
+    // Create an object to store the updates
+    const updates = {};
+
+    // Iterate over the edited time in inputs
+    for (let i = 0; i < timeInInputs.length; i++) {
+        const timeInInput = timeInInputs[i];
+        const scanKey = timeInInput.dataset.scanKey;
+        const timeInValue = timeInInput.value;
+
+        // Add the edited time in value to the updates object
+        updates[`rawCardScanning/${scanKey}/scanTime/In`] = timeInValue;
+
+        // Add the edited scan key to the array
+        editedScanKeys.push(scanKey);
+    }
+
+    // Iterate over the edited time out inputs
+    for (let i = 0; i < timeOutInputs.length; i++) {
+        const timeOutInput = timeOutInputs[i];
+        const scanKey = timeOutInput.dataset.scanKey;
+        const timeOutValue = timeOutInput.value;
+
+        // Add the edited time out value to the updates object
+        updates[`rawCardScanning/${scanKey}/scanTime/Out`] = timeOutValue;
+
+        // Add the edited scan key to the array
+        editedScanKeys.push(scanKey);
+    }
+
+    // Update the database with the edited values
+    update(ref(database), updates)
+        .then(() => {
+            // Clear the edited inputs and hide the submit button container
+            const editedInputs = document.querySelectorAll(".timeInInput, .timeOutInput");
+            editedInputs.forEach(function(input) {
+                input.value = "";
+            });
+
+            // Clear the table body and reload the data to reflect the changes
+            const tableBody = document.getElementById("dataTableBody");
+            tableBody.innerHTML = "";
+            displayClockCorrection();
+
+            // Reset the edited scan keys
+            editedScanKeys = [];
+        })
+        .catch((error) => {
+            console.error("Update failed:", error);
+        });
+}
