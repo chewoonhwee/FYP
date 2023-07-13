@@ -212,6 +212,7 @@
     }
 
 // Function to submit the edited input for a specific row
+// Function to submit the edited input for a specific row
 function submitEdit(row) {
     const email = document.getElementById("username").textContent.replace("Hi, ", "");
     const emailCell = row.cells[0];
@@ -223,10 +224,22 @@ function submitEdit(row) {
     const timeIn = timeInInput ? timeInInput.value : null;
     const timeOut = timeOutInput ? timeOutInput.value : null;
 
+    // Validate timeIn and timeOut inputs
+    if (timeIn && !timeIn.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
+        alert("Invalid Time In format, try again");
+        return;
+    }
+
+    if (timeOut && !timeOut.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
+        alert("Invalid Time Out format, try again");
+        return;
+    }
+
     // Get the current clockCorrectionFormID
     const clockCorrectionFormIDRef = ref(database, "clockCorrectionFormID");
-    get(clockCorrectionFormIDRef).then((snapshot) => {
-        let clockCorrectionFormID = snapshot.val() || "C0000"; // Retrieve the current form ID or default to C0000
+    get(clockCorrectionFormIDRef)
+        .then((snapshot) => {
+            let clockCorrectionFormID = snapshot.val() || "C0000"; // Retrieve the current form ID or default to C0000
 
             // Extract the number part from the clockCorrectionFormID and increment it
             const currentNumber = parseInt(clockCorrectionFormID.substring(1));
@@ -235,36 +248,38 @@ function submitEdit(row) {
             // Create the new form ID with the incremented number
             clockCorrectionFormID = "C" + padDigits(incrementedNumber, 4);
 
-        const clockCorrectionForm = {
-            clockCorrectionFormID:  clockCorrectionFormID, // Assign the incremented form ID
-            email: email,
-            date: dateCell.textContent,
-            timeIn: timeIn,
-            timeOut: timeOut,
-            approvalStatus: "unapproved"
-        };
+            const clockCorrectionForm = {
+                clockCorrectionFormID: clockCorrectionFormID, // Assign the incremented form ID
+                email: email,
+                date: dateCell.textContent,
+                timeIn: timeIn,
+                timeOut: timeOut,
+                approvalStatus: "unapproved"
+            };
 
-        const clockCorrectionFormsRef = ref(database, "clockCorrectionForms");
+            const clockCorrectionFormsRef = ref(database, "clockCorrectionForms");
 
-        push(clockCorrectionFormsRef, clockCorrectionForm)
-            .then(function () {
-                // Update the clockCorrectionFormID in the database
-                set(clockCorrectionFormIDRef, clockCorrectionFormID)
-                    .then(function () {
-                        // Display a success message or perform any other necessary actions
-                        alert("Form submitted successfully!");
-                    })
-                    .catch(function (error) {
-                        console.error("Error updating form ID:", error);
-                    });
-            })
-            .catch(function (error) {
-                console.error("Error submitting form:", error);
-            });
-    }).catch(function (error) {
-        console.error("Error retrieving form ID:", error);
-    });
+            push(clockCorrectionFormsRef, clockCorrectionForm)
+                .then(function () {
+                    // Update the clockCorrectionFormID in the database
+                    set(clockCorrectionFormIDRef, clockCorrectionFormID)
+                        .then(function () {
+                            // Display a success message or perform any other necessary actions
+                            alert("Form submitted successfully!");
+                        })
+                        .catch(function (error) {
+                            console.error("Error updating form ID:", error);
+                        });
+                })
+                .catch(function (error) {
+                    console.error("Error submitting form:", error);
+                });
+        })
+        .catch(function (error) {
+            console.error("Error retrieving form ID:", error);
+        });
 }
+
 
 // Helper function to pad the form ID with leading zeros
 function padDigits(number, digits) {
@@ -299,6 +314,7 @@ function displayClockCorrection(startDate, endDate) {
                     <td>
                         ${scan.timeIn ? `<input type="text" class="timeInInput" data-scan-key="${childSnapshot.key}" value="${scan.timeIn}">` : ''}
                     </td>
+
                     <td>
                         ${scan.timeOut ? `<input type="text" class="timeOutInput" data-scan-key="${childSnapshot.key}" value="${scan.timeOut}">` : ''}
                     </td>
