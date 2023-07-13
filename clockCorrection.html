@@ -212,7 +212,6 @@
     }
 
 // Function to submit the edited input for a specific row
-// Function to submit the edited input for a specific row
 function submitEdit(row) {
     const email = document.getElementById("username").textContent.replace("Hi, ", "");
     const emailCell = row.cells[0];
@@ -224,16 +223,26 @@ function submitEdit(row) {
     const timeIn = timeInInput ? timeInInput.value : null;
     const timeOut = timeOutInput ? timeOutInput.value : null;
 
-    // Validate timeIn and timeOut inputs
-    if (timeIn && !timeIn.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
+// Validate timeIn and timeOut inputs
+if (timeIn) {
+    if (!timeIn.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
         alert("Invalid Time In format, try again");
         return;
     }
+} else {
+    alert("Time In field cannot be empty");
+    return;
+}
 
-    if (timeOut && !timeOut.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
+if (timeOut) {
+    if (!timeOut.match(/(1[012]|[1-9]):[0-5][0-9](am|pm)/)) {
         alert("Invalid Time Out format, try again");
         return;
     }
+} else {
+    alert("Time Out field cannot be empty");
+    return;
+}
 
     // Get the current clockCorrectionFormID
     const clockCorrectionFormIDRef = ref(database, "clockCorrectionFormID");

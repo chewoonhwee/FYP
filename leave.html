@@ -198,11 +198,19 @@ function fetchAndDisplayLeaveFormID() {
 async function submitForm(e) {
   e.preventDefault();
 
+  // Get the field values
   var leaveType = getElementVal("leaveType");
   var startDate = getElementVal("startDate");
   var endDate = getElementVal("endDate");
   var reason = getElementVal("reason");
 
+  // Validate the fields
+  if (!startDate || !endDate || !reason) {
+    alert("Please fill in all the required fields.");
+    return; // Stop the form submission if any field is empty
+  }
+
+  // Rest of your code for saving the form data
   try {
     const leaveFormID = await generateLeaveFormID();
     setLeaveFormID(leaveFormID);
@@ -214,6 +222,7 @@ async function submitForm(e) {
     console.error("Failed to submit form:", error);
   }
 }
+
 
 // Add event listener to fetch and display the leave form ID when the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
